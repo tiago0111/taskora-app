@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-// --- Interfaces TypeScript para os nossos dados ---
+// --- Interfaces TypeScript ---
 interface Mode {
   id: 'work' | 'shortBreak' | 'longBreak';
   label: string;
@@ -20,14 +20,33 @@ export default function PomodoroPage() {
 
   // --- Estados da Aplicação ---
   const [activeMode, setActiveMode] = useState<Mode['id']>('work');
-  const [timeLeft, setTimeLeft] = useState(modes.find(m => m.id === 'work')?.time || 25 * 60);
+  const selectedMode = modes.find(m => m.id === activeMode)!;
+
+  const [timeLeft, setTimeLeft] = useState(selectedMode.time);
   const [isActive, setIsActive] = useState(false);
   const [currentTask, setCurrentTask] = useState('Implementar sistema de autenticação');
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const selectedMode = modes.find(m => m.id === activeMode)!;
+  // Lógica do Temporizador com useEffect
+  useEffect(() => {
+    if (isActive && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft(prevTime => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && isActive) {
+      setIsActive(false);
+      // Pode adicionar um som de alerta aqui
+      alert("Sessão terminada!");
+    }
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isActive, timeLeft]);
+
   const progress = ((selectedMode.time - timeLeft) / selectedMode.time) * 100;
 
-  // Função para formatar o tempo de segundos para MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
     const secs = (seconds % 60).toString().padStart(2, '0');
@@ -35,15 +54,34 @@ export default function PomodoroPage() {
   };
 
   const handleModeChange = (modeId: Mode['id']) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
     setActiveMode(modeId);
     setTimeLeft(modes.find(m => m.id === modeId)?.time || 0);
-    setIsActive(false); // Pausa o timer ao mudar de modo
+    setIsActive(false);
   };
+
+  const handleReset = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setIsActive(false);
+    setTimeLeft(selectedMode.time);
+  };
+  
+  // Dados de exemplo para as estatísticas
+  const todayStats = {
+    completedSessions: 8,
+    totalFocusTime: '3h 20m',
+  };
+
+  const recentSessions = [
+    { id: 1, task: 'Design da interface principal', type: 'work' },
+    { id: 2, task: 'Pausa curta', type: 'break' },
+    { id: 3, task: 'Configurar base de dados', type: 'work' },
+  ];
 
   return (
     <div className="space-y-8">
       {/* === Header da Página === */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Pomodoro Timer</h1>
           <p className="text-slate-400 mt-1">Maximize a sua produtividade com sessões focadas.</p>
@@ -103,6 +141,12 @@ export default function PomodoroPage() {
             {/* Botões de Ação */}
             <div className="mt-8 flex items-center justify-center space-x-4">
               <button 
+                onClick={handleReset}
+                className="w-16 h-16 bg-slate-700 text-slate-300 rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300 flex items-center justify-center text-2xl"
+              >
+                <i className='bx bx-reset'></i>
+              </button>
+              <button 
                 onClick={() => setIsActive(!isActive)}
                 className={`w-24 h-24 text-white rounded-full shadow-xl hover:shadow-2xl transform hover:scale-110 transition-all duration-300 flex items-center justify-center text-4xl bg-gradient-to-br ${selectedMode.gradient}`}
               >
@@ -131,21 +175,16 @@ export default function PomodoroPage() {
           <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg p-6">
             <h3 className="text-xl font-bold text-white mb-4">Estatísticas de Hoje</h3>
             <div className="space-y-4">
-              <StatCard icon="bx-time-five" title="Sessões Concluídas" value="8" color="text-green-400" />
-              <StatCard icon="bx-check-double" title="Tarefas Concluídas" value="5" color="text-blue-400" />
-              <StatCard icon="bx-brain" title="Tempo Focado" value="3h 20m" color="text-purple-400" />
+              <StatCard icon="bx-time-five" title="Sessões Concluídas" value={todayStats.completedSessions.toString()} color="text-green-400" />
+              <StatCard icon="bx-brain" title="Tempo Focado" value={todayStats.totalFocusTime} color="text-purple-400" />
             </div>
           </div>
 
           <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg p-6">
             <h3 className="text-xl font-bold text-white mb-4">Sessões Recentes</h3>
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {[
-                { task: 'Design da interface', type: 'work' },
-                { task: 'Pausa curta', type: 'break' },
-                { task: 'Configurar base de dados', type: 'work' },
-              ].map((session, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg">
+              {recentSessions.map((session) => (
+                <div key={session.id} className="flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg">
                   <div className={`w-2 h-2 rounded-full ${session.type === 'work' ? 'bg-red-500' : 'bg-green-500'}`}></div>
                   <p className="text-sm text-slate-300 truncate">{session.task}</p>
                 </div>

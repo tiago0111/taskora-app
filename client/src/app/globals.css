@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+@layer components {
+  /* === Estilos para Botões === */
+  .btn-primary {
+    @apply inline-flex items-center px-5 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center px-5 py-3 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition-colors;
+  }
+  .btn-danger {
+    @apply inline-flex items-center px-5 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors shadow-lg;
+  }
+  .btn-success {
+    @apply inline-flex items-center px-5 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors shadow-lg;
+  }
+
+  /* === Estilos para Formulários === */
+  .input-field {
+    @apply w-full h-12 px-4 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500;
+  }
+
+  /* === Estilos para Badges === */
+  .badge-blue { @apply px-3 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-300; }
+  .badge-green { @apply px-3 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-300; }
+  .badge-yellow { @apply px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500/20 text-yellow-300; }
+  .badge-purple { @apply px-3 py-1 text-xs font-semibold rounded-full bg-purple-500/20 text-purple-300; }
+  .badge-red { @apply px-3 py-1 text-xs font-semibold rounded-full bg-red-500/20 text-red-300; }
+}
