@@ -11,11 +11,11 @@ export async function createTask(req: Request, res: Response) {
     const { title, description, assigneeId } = req.body;
 
     // Validação dos dados essenciais
-    if (!title) {
-      return res.status(400).json({ message: 'O título da tarefa é obrigatório.' });
-    }
     if (isNaN(projectId)) {
       return res.status(400).json({ message: 'ID do projeto inválido.' });
+    }
+    if (!title) {
+      return res.status(400).json({ message: 'O título da tarefa é obrigatório.' });
     }
 
     // VERIFICAÇÃO DE SEGURANÇA
@@ -54,6 +54,10 @@ export async function createTask(req: Request, res: Response) {
 export async function listTasks ( req : Request , res : Response ) {
   try {
     const projectId = parseInt(req.params.projectId, 10);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ message: 'ID do projeto inválido.' });
+    }
+    
     const userId = (req.user as any).userId;
     const project = await prisma.project.findUnique({
       where: { id: projectId },

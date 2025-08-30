@@ -4,6 +4,6 @@ import { createPomodoroSession } from '../controllers/pomodoro.controller';
 
 const pomodoroRouter = Router();
 
-pomodoroRouter.post ('/sesions',authMiddleware,createPomodoroSession);
+pomodoroRouter.post ('/sessions',authMiddleware,createPomodoroSession);
 
 export default pomodoroRouter;

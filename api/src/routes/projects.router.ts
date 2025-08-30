@@ -1,9 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { listProjects } from '../controllers/projects.controller';
-import { createProject } from '../controllers/projects.controller';
-import { updateProject } from '../controllers/projects.controller';
-import { deleteProject } from '../controllers/projects.controller';
+import { listProjects, createProject, updateProject, deleteProject } from '../controllers/projects.controller';
 import  tasksRouter  from './tasks.router';
 
 
