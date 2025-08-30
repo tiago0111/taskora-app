@@ -7,7 +7,7 @@ import { deleteProject } from '../controllers/projects.controller';
 import  tasksRouter  from './tasks.router';
 
 
-export const projectsRouter = Router();
+ const projectsRouter = Router();
 
 projectsRouter.get('/', authMiddleware, listProjects);
 projectsRouter.post('/', authMiddleware, createProject);
