@@ -8,20 +8,51 @@ import { useRouter } from 'next/navigation';
 export default function Home() {
   const [userEmail, setUserEmail] = useState("")
   const [userPassword, setUserPassword] = useState("")
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // 2. Função para lidar com a submissão do formulário
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault(); // Evita que a página recarregue
-    
-    // Por agora, apenas mostramos os dados na consola para testar
-    console.log('Dados de Login:', { userEmail, userPassword });
-     router.push('/dashboard'); 
-    // Futuramente, aqui será a chamada para a API do backend
-  };
 
- 
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
+    // Estrutura 'try...catch...finally' 
+    try {
+      const response = await fetch("http://localhost:3001/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email: userEmail, password: userPassword })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Usa a mensagem de erro da API, se existir, ou uma mensagem padrão
+        throw new Error(data.error || "Ocorreu um erro ao fazer login.");
+      }
+      
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        router.push('/dashboard');
+      } else {
+        throw new Error("Token não recebido do servidor.");
+      }
+
+    } catch (err) {
+      // Corrigido: Verifica se 'err' é uma instância de Error antes de usar .message
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Ocorreu um erro inesperado.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  } 
   return (
     <div className="min-h-screen bg-slate-800 flex items-center justify-center p-4">
 

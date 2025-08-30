@@ -6,12 +6,14 @@ import userRouter from './routes/user.router';
 import tasksRouter from './routes/tasks.router';
 import pomodoroRouter from './routes/pomodoro.router';
 import analyticsRouter from './routes/analytics.router';
+import cors from 'cors';
 
 dotenv.config();
 const app = express();
 
 const port = 3001;
 app.use(express.json());
+app.use(cors());
 
 app.use('/api/auth', authentication);
 app.use('/api/projects', projectsRouter);

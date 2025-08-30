@@ -11,6 +11,7 @@ export async function listProjects(req: Request, res: Response) {
 
     if (!userId) {
       return res.status(401).json({ message: 'ID do utilizador não encontrado no token.' });
+    }
 
     // Usa o userId para ir à base de dados buscar apenas os projetos daquele utilizador.
     const projects = await prisma.project.findMany({
@@ -26,7 +27,7 @@ export async function listProjects(req: Request, res: Response) {
     return res.status(200).json(projects);
   }
 
-  } catch (error) {
+  catch (error) {
     console.error('Erro ao listar projetos:', error);
     return res.status(500).json({ message: 'Ocorreu um erro interno no servidor.' });
   }
@@ -158,10 +159,10 @@ export async function deleteProject(req: Request, res: Response) {
     });
 
     // Enviar a Resposta com o projeto eliminado
-    res.status(200).json(deletedProject);
+    res.status(204).send();
 
   } catch (error) {
-    console.error("Erro ao eliminar projeto:", error);
-    res.status(500).json({ message: "Ocorreu um erro no servidor ao tentar eliminar o projeto." });
+    console.error("Erro ao apagar tarefa:", error);
+    res.status(500).json({ message: "Ocorreu um erro no servidor ao tentar apagar a tarefa." });
   }
 }
