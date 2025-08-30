@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "module": "CommonJS", // Define o sistema de módulos de saída para o Node.js tradicional
+    "esModuleInterop": true, // Permite que 'import' funcione com módulos 'require'
+    
+    /* --- Outras Boas Práticas --- */
+    "target": "es2020", // Compila para uma versão moderna do JavaScript
+    "moduleResolution": "node",
+    "outDir": "dist", // Coloca o JavaScript compilado numa pasta 'dist'
+    "sourceMap": true,
+    
+    /* --- Regras Estritas para Menos Bugs --- */
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*","env.d.ts"] // Diz ao TypeScript para apenas compilar ficheiros dentro da pasta 'src'
+}
