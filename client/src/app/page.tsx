@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 export default function Home() {
   const [userEmail, setUserEmail] = useState("")
@@ -36,8 +37,8 @@ export default function Home() {
       }
       
       if (data.token) {
-        localStorage.setItem('authToken', data.token);
-        router.push('/dashboard');
+        Cookies.set('authToken', data.token, { expires: 7 }); // Guarda o token num cookie por 7 dias
+        router.push('/dashboard/tasks');
       } else {
         throw new Error("Token não recebido do servidor.");
       }
@@ -113,14 +114,14 @@ export default function Home() {
                     </div>
                   </div>
 
-
-
+                  {error && <p className="text-sm text-red-400 text-center">{error}</p>}
 
 
                   {/* <Link href="/dashboard"> */}
                     <button
                       type="submit"
                       className="w-full py-4 px-6 bg-slate-800 text-white rounded-xl font-bold text-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 transform hover:scale-[1.02] transition-all duration-200 shadow-xl hover:shadow-2xl"
+                      disabled={isLoading}
                     >
                       <span className="flex items-center justify-center">
                         <i className="bx bx-log-in mr-3 text-xl"></i>

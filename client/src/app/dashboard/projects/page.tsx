@@ -1,20 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, FormEvent } from 'react';
-import { Project, Task } from '@/types';
-// A importação do router foi removida para resolver o erro de compilação.
-// A navegação será feita com JavaScript nativo.
-
-// Definição do tipo Project para que o código seja autossuficiente
-// interface Project {
-//   id: number;
-//   name: string;
-//   description: string | null;
-//   status: string;
-//   progress: number;
-//   endDate: string | null;
-//   color: string | null;
-// }
+import type { Project } from '@/types';
+import { fetchWithAuth } from '@/utils/api';
 
 // --- Componente da Página Principal ---
 export default function ProjectsPage() {
@@ -24,29 +12,16 @@ export default function ProjectsPage() {
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState('all');
 
-  // Função para buscar projetos da API
+  // Função para buscar projetos da API usando o utilitário
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      window.location.href = '/';
-      return;
-    }
-
     try {
-      const response = await fetch('http://localhost:3001/api/projects', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const response = await fetchWithAuth('/projects');
 
       if (!response.ok) {
-        // Redireciona para o login em caso de token inválido ou expirado
-        if(response.status === 401 || response.status === 403){
-            localStorage.removeItem('authToken');
-            window.location.href = '/';
-            return;
-        }
+        // A lógica de redirecionamento já está no fetchWithAuth
         throw new Error('Não foi possível carregar os projetos. Verifique se a sua API está a correr.');
       }
 
@@ -59,7 +34,7 @@ export default function ProjectsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []); // Dependência 'router' removida
+  }, []);
 
   // Busca os projetos quando o componente é montado
   useEffect(() => {
@@ -69,7 +44,7 @@ export default function ProjectsPage() {
   const filteredProjects = projects.filter(project => {
     if (filter === 'all') return true;
     const normalizedStatus = project.status.toLowerCase().replace(' ', '');
-    return normalizedStatus === filter;
+    return normalizedStatus === filter.toLowerCase().replace(' ', '');
   });
 
   const getDaysRemaining = (endDate: string | null) => {
@@ -195,20 +170,9 @@ function NewProjectModal({ onClose, onProjectCreated }: NewProjectModalProps) {
     setIsLoading(true);
     setError(null);
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-        setError('Não autenticado. Por favor, faça login novamente.');
-        setIsLoading(false);
-        return;
-    }
-
     try {
-        const response = await fetch('http://localhost:3001/api/projects', {
+        const response = await fetchWithAuth('/projects', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify({ name, description })
         });
 

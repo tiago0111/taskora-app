@@ -12,6 +12,7 @@ model User {
   email            String             @unique
   name             String
   password         String
+  role             Role               @default(USER) // Adicionei este campo
   bio              String?
   avatarUrl        String?
   createdAt        DateTime           @default(now())
@@ -23,6 +24,7 @@ model User {
   teams            ProjectsOnUsers[]
 }
 
+// Outros modelos (Project, Task, etc.)
 model Project {
   id          Int      @id @default(autoincrement())
   name        String
@@ -104,4 +106,10 @@ enum PomodoroMode {
   TRABALHO
   PAUSA_CURTA
   PAUSA_LONGA
+}
+
+
+enum Role {
+  USER
+  ADMIN
 }

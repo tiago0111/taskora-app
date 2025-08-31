@@ -6,12 +6,18 @@ const prisma = new PrismaClient();
 export async function updateUserProfile(req: Request, res: Response) {
   try {
     const userId = (req.user as any).userId;
+    const userRole = (req.user as any).role;
     if (!userId) {
       return res.status(401).json({ message: 'Não autorizado.' });
     }
 
     // Extrair os dados que podem ser atualizados do corpo do pedido
     const { name, bio } = req.body;
+
+    // Apenas administradores podem atualizar perfis
+    if (userRole !== 'ADMIN') {
+        return res.status(403).json({ message: 'Acesso negado. Apenas administradores podem alterar perfis.' });
+    }
 
     // Atualizar o utilizador na base de dados
     const updatedUser = await prisma.user.update({

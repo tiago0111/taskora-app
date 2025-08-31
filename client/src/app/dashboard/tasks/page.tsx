@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import type { Project, Task } from '@/types'; 
-import { type } from 'os';
+import type { Project, Task } from '@/types';
+import { fetchWithAuth } from '@/utils/api';
 
 // --- Interfaces para os novos componentes (se ainda não existirem) ---
 interface ModalProps {
@@ -21,107 +20,75 @@ export default function TasksPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [isLoadingProjects, setIsLoadingProjects] = useState(true);
-    const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
-    const router = useRouter();
-
     const fetchProjects = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
         try {
-            const token = localStorage.getItem('authToken');
-            if (!token) {
-                console.error('Token de autenticação não encontrado. Redirecionando para login.');
-                router.push('/');
-                return;
-            }
-
-            const response = await fetch('http://localhost:3001/api/projects', {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Erro ao carregar projetos:', response.status, errorText);
+            const projectsResponse = await fetchWithAuth('/projects');
+            if (!projectsResponse.ok) {
                 throw new Error('Falha ao carregar os seus projetos.');
             }
-
-            const projectsData: Project[] = await response.json();
+            const projectsData: Project[] = await projectsResponse.json();
             setProjects(projectsData);
-            console.log('Projetos carregados:', projectsData);
-
-            if (projectsData.length > 0 && typeof projectsData[0].id === 'number' && projectsData[0].id > 0) {
+            if (projectsData.length > 0) {
                 setSelectedProjectId(projectsData[0].id);
             } else {
                 setSelectedProjectId(null);
+                setTasks([]);
                 setError('Nenhum projeto disponível. Crie um projeto para começar.');
             }
         } catch (err) {
+            console.error('Erro na função fetchProjects:', err);
             if (err instanceof Error) setError(err.message);
+            else setError("Ocorreu um erro inesperado.");
         } finally {
-            setIsLoadingProjects(false);
+            setIsLoading(false);
         }
-    }, [router]);
+    }, []);
 
-    const fetchTasksForProject = useCallback(async () => {
-        if (!selectedProjectId || typeof selectedProjectId !== 'number' || selectedProjectId <= 0) {
-            setError('Nenhum projeto selecionado ou ID inválido.');
-            setTasks([]);
-            return;
-        }
-
-        setIsLoadingTasks(true);
+    const fetchTasksForProject = useCallback(async (projectId: number) => {
+        setIsLoading(true);
         setError(null);
         try {
-            const token = localStorage.getItem('authToken');
-            if (!token) {
-                console.error('Token de autenticação não encontrado. Redirecionando para login.');
-                router.push('/');
-                return;
-            }
-
-            const response = await fetch(`http://localhost:3001/api/projects/${selectedProjectId}/tasks`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-
+            const response = await fetchWithAuth(`/projects/${projectId}/tasks`);
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Erro ao carregar tarefas:', response.status, errorText);
                 throw new Error(`Falha ao carregar as tarefas deste projeto. (${response.status})`);
             }
-
             const tasksData: Task[] = await response.json();
             setTasks(tasksData);
         } catch (err) {
             if (err instanceof Error) setError(err.message);
+            else setError("Ocorreu um erro inesperado.");
         } finally {
-            setIsLoadingTasks(false);
+            setIsLoading(false);
         }
-    }, [selectedProjectId, router]);
+    }, []);
 
     useEffect(() => {
         fetchProjects();
     }, [fetchProjects]);
 
     useEffect(() => {
-        fetchTasksForProject();
-    }, [fetchTasksForProject]);
+        if (selectedProjectId) {
+            fetchTasksForProject(selectedProjectId);
+        }
+    }, [selectedProjectId, fetchTasksForProject]);
 
-    // Accept the same shape the modal submits
     const handleCreateTask = async (
         taskData: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority'>>
     ) => {
-        if (!selectedProjectId) return;
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            router.push('/');
+        if (!selectedProjectId) {
+            setError('Nenhum projeto selecionado para criar a tarefa.');
             return;
         }
         try {
-            const response = await fetch(`http://localhost:3001/api/projects/${selectedProjectId}/tasks`, {
+            const response = await fetchWithAuth(`/projects/${selectedProjectId}/tasks`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
                     title: taskData.title,
                     description: taskData.description ?? '',
@@ -130,7 +97,7 @@ export default function TasksPage() {
                 })
             });
             if (!response.ok) throw new Error('Falha ao criar a tarefa.');
-            fetchTasksForProject();
+            fetchTasksForProject(selectedProjectId);
         } catch (err) {
             if (err instanceof Error) setError(err.message);
         }
@@ -140,44 +107,39 @@ export default function TasksPage() {
         taskId: number,
         taskData: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority'>>
     ) => {
-        if (!selectedProjectId) return;
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            router.push('/');
+        if (!selectedProjectId) {
+            setError('Nenhum projeto selecionado para atualizar a tarefa.');
             return;
         }
         try {
-            const response = await fetch(`http://localhost:3001/api/projects/${selectedProjectId}/tasks/${taskId}`, {
+            const response = await fetchWithAuth(`/projects/${selectedProjectId}/tasks/${taskId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(taskData)
             });
             if (!response.ok) throw new Error('Falha ao atualizar a tarefa.');
-            fetchTasksForProject();
+            fetchTasksForProject(selectedProjectId);
         } catch (err) {
             if (err instanceof Error) setError(err.message);
         }
     };
 
     const handleDeleteTask = async (taskId: number) => {
-        if (!selectedProjectId || !window.confirm('Tem a certeza que quer apagar esta tarefa?')) return;
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            router.push('/');
+        if (!selectedProjectId) {
+            setError('Nenhum projeto selecionado para apagar a tarefa.');
             return;
         }
+        if (!window.confirm('Tem a certeza que quer apagar esta tarefa?')) return;
         try {
-            const response = await fetch(`http://localhost:3001/api/projects/${selectedProjectId}/tasks/${taskId}`, {
+            const response = await fetchWithAuth(`/projects/${selectedProjectId}/tasks/${taskId}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
             if (!response.ok) throw new Error('Falha ao apagar a tarefa.');
-            fetchTasksForProject();
+            fetchTasksForProject(selectedProjectId);
         } catch (err) {
             if (err instanceof Error) setError(err.message);
         }
     };
-
+    
     const filteredTasks = filter === 'all' ? tasks : tasks.filter(task => task.status === filter);
     const getStatusColor = (status: string) => {
         const map: Record<string, string> = { 'CONCLUIDA': 'bg-green-500/20 text-green-300', 'EM_PROGRESSO': 'bg-yellow-500/20 text-yellow-300', 'PENDENTE': 'bg-slate-600 text-slate-300' };
@@ -212,6 +174,23 @@ export default function TasksPage() {
             </div>
 
             <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                {/* Menu de seleção de projetos */}
+                <select
+                    value={selectedProjectId || ''}
+                    onChange={(e) => setSelectedProjectId(parseInt(e.target.value, 10))}
+                    className="h-12 border border-slate-700 rounded-xl px-4 bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    {projects.length > 0 ? (
+                        projects.map((project) => (
+                            <option key={project.id} value={project.id}>
+                                {project.name}
+                            </option>
+                        ))
+                    ) : (
+                        <option value="" disabled>Nenhum projeto disponível</option>
+                    )}
+                </select>
+
                 <div className="flex flex-wrap gap-2">
                     <FilterButton label="Todas" count={tasks.length} active={filter === 'all'} onClick={() => setFilter('all')} />
                     <FilterButton label="Pendentes" count={tasks.filter(t => t.status === 'PENDENTE').length} active={filter === 'PENDENTE'} onClick={() => setFilter('PENDENTE')} />
@@ -230,10 +209,9 @@ export default function TasksPage() {
                 </div>
             </div>
 
-            {/* === Lista de Tarefas === */}
             <div className="space-y-4">
-                {isLoadingTasks ? (
-                    <p className="text-center text-slate-400 py-10">A carregar tarefas...</p>
+                {isLoading ? (
+                    <p className="text-center text-slate-400 py-10">A carregar dados...</p>
                 ) : error ? (
                     <p className="text-center text-red-400 py-10">{error}</p>
                 ) : filteredTasks.length > 0 ? (

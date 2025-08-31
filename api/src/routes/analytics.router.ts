@@ -5,6 +5,6 @@ import { getAnalyticsSummary } from '../controllers/analytics.controller';
 const analyticsRouter = Router();
 
 
-analyticsRouter.get('/summary',authMiddleware,getAnalyticsSummary)
+analyticsRouter.get('/summary', authMiddleware, getAnalyticsSummary)
 
 export default analyticsRouter;

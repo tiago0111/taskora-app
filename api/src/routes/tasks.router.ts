@@ -6,8 +6,8 @@ import { createTask, listTasks, updateTask, deleteTask } from '../controllers/ta
 const tasksRouter = Router();
 
 tasksRouter.post('/', authMiddleware, createTask);
-tasksRouter.get ('/',authMiddleware, listTasks);
-tasksRouter.put ('/:taskId',authMiddleware, updateTask);
+tasksRouter.get ('/', authMiddleware, listTasks);
+tasksRouter.put ('/:taskId', authMiddleware, updateTask);
 tasksRouter.delete('/:taskId', authMiddleware, deleteTask);
 
 

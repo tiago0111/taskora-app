@@ -1,45 +1,48 @@
 import { PrismaClient } from '@prisma/client';
-import type { Request, Response } from 'express';
-import bcrypt from "bcryptjs";
-import { error } from 'console';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import type { Request, Response } from 'express';
 
 const prisma = new PrismaClient();
+const JWT_SECRET = process.env.JWT_SECRET || 'your_default_secret';
 
 export async function login(req: Request, res: Response) {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'E-mail e palavra-passe são obrigatórios.' });
+  }
+
   try {
-    const { email , password } = req.body;
-
-    if (!email || !password) {
-      return res.status(422).json({ error: 'Missing email or password' });
-    }
-
     const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
+      where: { email },
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'invalid credential email' });
+      return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 
-    const passwordCompare = await bcrypt.compare(password, user.password);
-    if (passwordCompare) {
-      //verifica se o secret existe
-      const jwtSecret = process.env.JWT_SECRET;
-      if (!jwtSecret) {
-        console.error('JWT_SECRET is not set');
-        return res.status(500).json({ error: 'Server configuration error' });
-      }
-      // cria o jwt token
-      const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '90d' });
-      return res.json({ token });
-    } else {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
+
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
+
+    res.status(200).json({
+      message: 'Login bem-sucedido!',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+      },
+    });
+
   } catch (error) {
-    console.log('Erro ao fazer o login:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro no login:", error);
+    res.status(500).json({ message: "Ocorreu um erro no servidor." });
   }
 }
