@@ -11,7 +11,6 @@ export async function createPomodoroSession(req: Request, res: Response) {
       return res.status(401).json({ message: 'Não autorizado.' });
     }
 
-
     const { duration, mode, taskId } = req.body;
 
     //  Validação 
@@ -19,6 +18,7 @@ export async function createPomodoroSession(req: Request, res: Response) {
       return res.status(400).json({ message: 'Os campos "duration" (número) e "mode" (string) são obrigatórios.' });
     }
 
+    // Validação robusta para garantir que o 'mode' corresponde ao Enum do Prisma
     const isValidMode = Object.values(PomodoroMode).includes(mode);
     if (!isValidMode) {
       return res.status(400).json({
@@ -27,23 +27,20 @@ export async function createPomodoroSession(req: Request, res: Response) {
       });
     }
 
-   
     const dataToCreate: any = {
       duration,
       mode,
       userId: userId,
     };
 
-    // Adicionamos o taskId 
-    if (taskId) {
+    // Adicionamos o taskId se ele for fornecido e válido
+    if (taskId && typeof taskId === 'number') {
       dataToCreate.taskId = taskId;
     }
 
-    
     const newSession = await prisma.pomodoroSession.create({
       data: dataToCreate,
     });
-
     
     res.status(201).json(newSession);
 

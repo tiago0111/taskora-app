@@ -3,7 +3,7 @@ import { authentication } from "./routes/auth";
 import dotenv from "dotenv";
 import projectsRouter from './routes/projects.router';
 import userRouter from './routes/user.router';
-import tasksRouter from './routes/tasks.router';
+
 import pomodoroRouter from './routes/pomodoro.router';
 import analyticsRouter from './routes/analytics.router';
 import cors from 'cors';
@@ -18,7 +18,7 @@ app.use(cors());
 app.use('/api/auth', authentication);
 app.use('/api/projects', projectsRouter);
 app.use('/api/user', userRouter);
-app.use('/api/tasks', tasksRouter); 
+
 app.use('/api/pomodoro', pomodoroRouter);
 app.use('/api/analytics', analyticsRouter);
 

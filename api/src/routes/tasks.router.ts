@@ -2,13 +2,13 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { createTask, listTasks, updateTask, deleteTask } from '../controllers/tasks.controller';
 
-
-const tasksRouter = Router();
-
-tasksRouter.post('/', authMiddleware, createTask);
-tasksRouter.get ('/', authMiddleware, listTasks);
-tasksRouter.put ('/:taskId', authMiddleware, updateTask);
-tasksRouter.delete('/:taskId', authMiddleware, deleteTask);
+{ mergeParams: true } 
+const tasksRouter = Router({ mergeParams: true });
 
 
-export default tasksRouter
+tasksRouter.post('/', createTask);
+tasksRouter.get('/', listTasks);
+tasksRouter.put('/:taskId', updateTask);
+tasksRouter.delete('/:taskId', deleteTask);
+
+export default tasksRouter;
