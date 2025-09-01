@@ -1,22 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback, FormEvent } from 'react';
-import type { Project, Task } from '@/types';
+// 1. Importar os novos tipos que definimos
+import type { Project, Task, TaskStatus, TaskPriority } from '@/types';
 import { fetchWithAuth } from '@/utils/api';
 
-// --- Interfaces para os novos componentes (se ainda não existirem) ---
 interface ModalProps {
     onClose: () => void;
-    // Accept the fields that TaskModal actually submits
     onSave: (taskData: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority'>>) => Promise<void> | void;
-    projects: Project[];
     task?: Task | null;
-    selectedProjectId: number | null;
 }
 
 // --- Componente da Página ---
 export default function TasksPage() {
-    const [filter, setFilter] = useState<'all' | 'PENDENTE' | 'EM_PROGRESSO' | 'CONCLUIDA'>('all');
+    const [filter, setFilter] = useState<TaskStatus | 'all'>('all');
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -36,20 +33,21 @@ export default function TasksPage() {
             const projectsData: Project[] = await projectsResponse.json();
             setProjects(projectsData);
             if (projectsData.length > 0) {
-                setSelectedProjectId(projectsData[0].id);
+                if (!selectedProjectId) {
+                    setSelectedProjectId(projectsData[0].id);
+                }
             } else {
                 setSelectedProjectId(null);
                 setTasks([]);
                 setError('Nenhum projeto disponível. Crie um projeto para começar.');
             }
         } catch (err) {
-            console.error('Erro na função fetchProjects:', err);
             if (err instanceof Error) setError(err.message);
             else setError("Ocorreu um erro inesperado.");
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [selectedProjectId]);
 
     const fetchTasksForProject = useCallback(async (projectId: number) => {
         setIsLoading(true);
@@ -78,46 +76,24 @@ export default function TasksPage() {
             fetchTasksForProject(selectedProjectId);
         }
     }, [selectedProjectId, fetchTasksForProject]);
-
-    const handleCreateTask = async (
-        taskData: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority'>>
-    ) => {
+    
+    const handleSaveTask = async (taskData: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority'>>) => {
         if (!selectedProjectId) {
-            setError('Nenhum projeto selecionado para criar a tarefa.');
+            setError('Nenhum projeto selecionado.');
             return;
         }
-        try {
-            const response = await fetchWithAuth(`/projects/${selectedProjectId}/tasks`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    title: taskData.title,
-                    description: taskData.description ?? '',
-                    status: taskData.status ?? 'PENDENTE',
-                    priority: taskData.priority ?? 'MEDIA',
-                })
-            });
-            if (!response.ok) throw new Error('Falha ao criar a tarefa.');
-            fetchTasksForProject(selectedProjectId);
-        } catch (err) {
-            if (err instanceof Error) setError(err.message);
-        }
-    };
 
-    const handleUpdateTask = async (
-        taskId: number,
-        taskData: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority'>>
-    ) => {
-        if (!selectedProjectId) {
-            setError('Nenhum projeto selecionado para atualizar a tarefa.');
-            return;
-        }
+        const isEditing = taskToEdit !== null;
+        const url = isEditing ? `/projects/${selectedProjectId}/tasks/${taskToEdit.id}` : `/projects/${selectedProjectId}/tasks`;
+        const method = isEditing ? 'PUT' : 'POST';
+
         try {
-            const response = await fetchWithAuth(`/projects/${selectedProjectId}/tasks/${taskId}`, {
-                method: 'PUT',
+            const response = await fetchWithAuth(url, {
+                method: method,
                 body: JSON.stringify(taskData)
             });
-            if (!response.ok) throw new Error('Falha ao atualizar a tarefa.');
-            fetchTasksForProject(selectedProjectId);
+            if (!response.ok) throw new Error(`Falha ao ${isEditing ? 'atualizar' : 'criar'} a tarefa.`);
+            fetchTasksForProject(selectedProjectId); // Recarrega as tarefas
         } catch (err) {
             if (err instanceof Error) setError(err.message);
         }
@@ -157,38 +133,25 @@ export default function TasksPage() {
                     <h1 className="text-3xl font-bold text-white">Gestão de Tarefas</h1>
                     <p className="text-slate-400 mt-1">Organize, acompanhe e complete as suas tarefas.</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                    <button className="h-12 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 font-semibold rounded-xl transition-colors flex items-center">
-                        <i className="bx bx-filter mr-2 text-xl"></i>
-                        Filtros
-                    </button>
-                    <button 
-                        onClick={() => { if (selectedProjectId && typeof selectedProjectId === 'number' && selectedProjectId > 0) { setTaskToEdit(null); setShowModal(true); } }}
-                        className={`h-12 bg-indigo-600 hover:bg-indigo-700 text-white px-5 font-semibold rounded-xl transition-colors flex items-center shadow-lg ${(!selectedProjectId || typeof selectedProjectId !== 'number' || selectedProjectId <= 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={!selectedProjectId || typeof selectedProjectId !== 'number' || selectedProjectId <= 0}
-                    >
-                        <i className="bx bx-plus mr-2 text-xl"></i>
-                        Nova Tarefa
-                    </button>
-                </div>
+                <button 
+                    onClick={() => { if (selectedProjectId) { setTaskToEdit(null); setShowModal(true); } }}
+                    className={`btn-primary ${!selectedProjectId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    disabled={!selectedProjectId}
+                >
+                    <i className="bx bx-plus mr-2 text-xl"></i>
+                    Nova Tarefa
+                </button>
             </div>
 
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                {/* Menu de seleção de projetos */}
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
                 <select
                     value={selectedProjectId || ''}
                     onChange={(e) => setSelectedProjectId(parseInt(e.target.value, 10))}
                     className="h-12 border border-slate-700 rounded-xl px-4 bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                    {projects.length > 0 ? (
-                        projects.map((project) => (
-                            <option key={project.id} value={project.id}>
-                                {project.name}
-                            </option>
-                        ))
-                    ) : (
-                        <option value="" disabled>Nenhum projeto disponível</option>
-                    )}
+                    {projects.map((project) => (
+                        <option key={project.id} value={project.id}>{project.name}</option>
+                    ))}
                 </select>
 
                 <div className="flex flex-wrap gap-2">
@@ -196,16 +159,6 @@ export default function TasksPage() {
                     <FilterButton label="Pendentes" count={tasks.filter(t => t.status === 'PENDENTE').length} active={filter === 'PENDENTE'} onClick={() => setFilter('PENDENTE')} />
                     <FilterButton label="Em Progresso" count={tasks.filter(t => t.status === 'EM_PROGRESSO').length} active={filter === 'EM_PROGRESSO'} onClick={() => setFilter('EM_PROGRESSO')} />
                     <FilterButton label="Concluídas" count={tasks.filter(t => t.status === 'CONCLUIDA').length} active={filter === 'CONCLUIDA'} onClick={() => setFilter('CONCLUIDA')} />
-                </div>
-                <div className="relative w-full md:w-64">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <i className="bx bx-search text-slate-500"></i>
-                    </div>
-                    <input
-                        type="text"
-                        className="w-full h-10 pl-10 pr-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Pesquisar tarefas..."
-                    />
                 </div>
             </div>
 
@@ -218,12 +171,6 @@ export default function TasksPage() {
                     filteredTasks.map((task) => (
                         <div key={task.id} className="bg-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-indigo-500 transition-all duration-300">
                             <div className="flex items-start space-x-4">
-                                <input 
-                                    type="checkbox" 
-                                    className="w-5 h-5 mt-1 text-indigo-500 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500 focus:ring-2"
-                                    checked={task.status === 'CONCLUIDA'}
-                                    onChange={() => handleUpdateTask(task.id, { status: task.status === 'CONCLUIDA' ? 'PENDENTE' : 'CONCLUIDA' })}
-                                />
                                 <div className="flex-1">
                                     <h3 className={`text-lg font-bold mb-1 ${task.status === 'CONCLUIDA' ? 'text-slate-500 line-through' : 'text-white'}`}>
                                         {task.title}
@@ -231,24 +178,12 @@ export default function TasksPage() {
                                     <p className="text-slate-400 text-sm mb-4">{task.description}</p>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm text-slate-400">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>{task.status}</span>
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>{task.status.replace('_', ' ')}</span>
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>{task.priority}</span>
-                                            <span className="flex items-center gap-1"><i className='bx bx-calendar'></i>{task.dueDate}</span>
-                                            <span className="flex items-center gap-1"><i className='bx bx-user-circle'></i>{task.assignee.name}</span>
                                         </div>
                                         <div className="flex items-center space-x-1">
-                                            <button 
-                                                onClick={() => { setTaskToEdit(task); setShowModal(true); }}
-                                                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
-                                            >
-                                                <i className="bx bx-edit text-xl"></i>
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDeleteTask(task.id)}
-                                                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
-                                            >
-                                                <i className="bx bx-trash text-xl"></i>
-                                            </button>
+                                            <button onClick={() => { setTaskToEdit(task); setShowModal(true); }} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"><i className="bx bx-edit text-xl"></i></button>
+                                            <button onClick={() => handleDeleteTask(task.id)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"><i className="bx bx-trash text-xl"></i></button>
                                         </div>
                                     </div>
                                 </div>
@@ -262,46 +197,31 @@ export default function TasksPage() {
                 )}
             </div>
             
-            {showModal && selectedProjectId && typeof selectedProjectId === 'number' && selectedProjectId > 0 && (
+            {showModal && (
                 <TaskModal 
                     onClose={() => setShowModal(false)}
-                    onSave={taskToEdit ? (data) => handleUpdateTask(taskToEdit.id, data) : handleCreateTask}
-                    projects={projects}
+                    onSave={handleSaveTask}
                     task={taskToEdit}
-                    selectedProjectId={selectedProjectId}
                 />
             )}
         </div>
     );
 }
 
-// --- Componente reutilizável para os botões de filtro ---
 function FilterButton({ label, count, active, onClick }: { label: string; count: number; active: boolean; onClick: () => void; }) {
     return (
-        <button
-            onClick={onClick}
-            className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                active
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
-        >
+        <button onClick={onClick} className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
             {label}
-            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                active ? 'bg-indigo-400 text-white' : 'bg-slate-600 text-slate-200'
-            }`}>
-                {count}
-            </span>
+            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${active ? 'bg-indigo-400 text-white' : 'bg-slate-600 text-slate-200'}`}>{count}</span>
         </button>
     );
 }
 
-// --- Componente para o Modal de Tarefas ---
-function TaskModal({ onClose, onSave, projects, task, selectedProjectId }: ModalProps) {
+function TaskModal({ onClose, onSave, task }: ModalProps) {
     const [title, setTitle] = useState(task?.title || '');
     const [description, setDescription] = useState(task?.description || '');
-    const [status, setStatus] = useState(task?.status || 'PENDENTE');
-    const [priority, setPriority] = useState(task?.priority || 'MEDIA');
+    const [status, setStatus] = useState<TaskStatus>(task?.status || 'PENDENTE');
+    const [priority, setPriority] = useState<TaskPriority>(task?.priority || 'MEDIA');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -311,16 +231,13 @@ function TaskModal({ onClose, onSave, projects, task, selectedProjectId }: Modal
             setError('O título da tarefa é obrigatório.');
             return;
         }
-
         setIsLoading(true);
         setError(null);
-        
         try {
             await onSave({ title, description, status, priority });
             onClose();
         } catch (err) {
-            if (err instanceof Error) setError(err.message);
-            else setError('Ocorreu um erro inesperado.');
+            setError(err instanceof Error ? err.message : 'Ocorreu um erro inesperado.');
         } finally {
             setIsLoading(false);
         }
@@ -334,34 +251,22 @@ function TaskModal({ onClose, onSave, projects, task, selectedProjectId }: Modal
                     <button onClick={onClose} className="text-slate-400 hover:text-white"><i className="bx bx-x text-2xl"></i></button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <input 
-                        type="text" 
-                        placeholder="Título da Tarefa" 
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="input-field" 
-                        disabled={isLoading}
-                    />
-                    <textarea 
-                        placeholder="Descrição da Tarefa (opcional)" 
-                        rows={3} 
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="input-field" 
-                        disabled={isLoading}
-                    />
+                    <input type="text" placeholder="Título da Tarefa" value={title} onChange={(e) => setTitle(e.target.value)} className="input-field" disabled={isLoading} />
+                    <textarea placeholder="Descrição da Tarefa (opcional)" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="input-field" disabled={isLoading} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-semibold text-slate-300 mb-2">Status</label>
-                            <select value={status} onChange={(e) => setStatus(e.target.value)} className="input-field" disabled={isLoading}>
+                            {/* CORREÇÃO APLICADA AQUI */}
+                            <select value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)} className="input-field" disabled={isLoading}>
                                 <option value="PENDENTE">Pendente</option>
                                 <option value="EM_PROGRESSO">Em Progresso</option>
+                                <option value="EM_REVISAO">Em Revisão</option>
                                 <option value="CONCLUIDA">Concluída</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-slate-300 mb-2">Prioridade</label>
-                            <select value={priority} onChange={(e) => setPriority(e.target.value)} className="input-field" disabled={isLoading}>
+                            <select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)} className="input-field" disabled={isLoading}>
                                 <option value="ALTA">Alta</option>
                                 <option value="MEDIA">Média</option>
                                 <option value="BAIXA">Baixa</option>
@@ -370,8 +275,8 @@ function TaskModal({ onClose, onSave, projects, task, selectedProjectId }: Modal
                     </div>
                     {error && <p className="text-sm text-red-400">{error}</p>}
                     <div className="flex justify-end gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="px-5 py-3 text-slate-300 hover:bg-slate-700 rounded-xl font-semibold transition-colors">Cancelar</button>
-                        <button type="submit" className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-colors disabled:opacity-50" disabled={isLoading}>
+                        <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+                        <button type="submit" className="btn-primary" disabled={isLoading}>
                             {isLoading ? 'A guardar...' : 'Guardar'}
                         </button>
                     </div>

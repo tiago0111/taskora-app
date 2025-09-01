@@ -121,7 +121,9 @@ export default function PomodoroPage() {
       savePomodoroSession(selectedMode.time, selectedMode.apiMode);
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, [isActive, timeLeft, selectedMode, selectedTaskId]); // Adicionado selectedTaskId às dependências
 

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import toast from 'react-hot-toast';
 import { DndContext, useSensor, useSensors, PointerSensor, KeyboardSensor, closestCorners, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Task, Project, TaskStatus } from '@/types';
 import { fetchWithAuth } from '@/utils/api';
+import toast from 'react-hot-toast';
 
 // --- Interfaces e Tipos ---
 interface Column {
@@ -69,7 +69,7 @@ export default function KanbanPage() {
     setSelectedProjectId(projectId);
     await fetchTasksForProject(projectId);
   };
-  
+
   const columns: Column[] = [
     { id: 'PENDENTE', title: 'Para Fazer', color: 'border-blue-500' },
     { id: 'EM_PROGRESSO', title: 'Em Progresso', color: 'border-yellow-500' },
@@ -87,44 +87,31 @@ export default function KanbanPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
-    const activeId = active.id as number;
-    const overId = over.id as number | TaskStatus;
-    if (activeId === overId) return;
+    const activeId = active.id;
+    const overId = over.id;
 
     const activeTask = tasks.find(t => t.id === activeId);
     if (!activeTask) return;
-    
-    // ======================= INÍCIO DA CORREÇÃO =======================
-    // Determina a coluna de destino (o novo status) de forma segura
-    let newStatus: TaskStatus;
-    const overIsColumn = columns.some(c => c.id === overId);
 
-    if (overIsColumn) {
-        newStatus = overId as TaskStatus;
-    } else {
-        const overTask = tasks.find(t => t.id === overId);
-        if (!overTask) return;
-        newStatus = overTask.status;
-    }
-    // ======================= FIM DA CORREÇÃO =======================
+    const activeContainer = active.data.current?.sortable.containerId;
+    const overContainer = over.data.current?.sortable?.containerId || over.id;
 
-    // Se a tarefa foi movida para uma nova coluna
-    if (activeTask.status !== newStatus) {
+    if (!activeContainer || !overContainer) return;
+
+    if (activeContainer !== overContainer) {
+      const newStatus = overContainer as TaskStatus;
       setTasks(currentTasks => 
         currentTasks.map(task => 
           task.id === activeId ? { ...task, status: newStatus } : task
         )
       );
-      updateTaskStatusInApi(activeId, newStatus, activeTask.status);
+      updateTaskStatusInApi(activeTask.id, newStatus, activeTask.status);
     } 
-    // Se foi reordenada na mesma coluna
-    else {
+    else if (activeId !== overId) {
         const oldIndex = tasks.findIndex(t => t.id === activeId);
         const newIndex = tasks.findIndex(t => t.id === overId);
-        if (oldIndex !== newIndex) {
-            setTasks(currentTasks => arrayMove(currentTasks, oldIndex, newIndex));
-            toast.success('Ordem das tarefas atualizada!');
-        }
+        setTasks(currentTasks => arrayMove(currentTasks, oldIndex, newIndex));
+        toast.success('Ordem das tarefas atualizada!');
     }
   };
 
@@ -222,7 +209,7 @@ function KanbanCard({ task }: { task: Task }) {
     id: task.id,
     data: { type: 'Task', task }
   });
-  
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -237,7 +224,7 @@ function KanbanCard({ task }: { task: Task }) {
       default: return 'bg-slate-500/20 text-slate-300';
     }
   };
-  
+
   return (
     <div 
       ref={setNodeRef}

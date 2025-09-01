@@ -1,6 +1,8 @@
 import "./globals.css";
-
 import { Toaster } from 'react-hot-toast';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: "Taskora - Gestão de Tarefas e Produtividade",
@@ -9,14 +11,10 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt">
+    <html lang="pt" className={inter.className}>
       <head>
         <link
           href="https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -24,11 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Toaster 
           position="top-right"
           toastOptions={{
-            className: '',
             style: {
-              background: '#2d3748', 
-              color: '#cbd5e0', 
-              border: '1px solid #4a5568', 
+              background: '#2d3748',
+              color: '#cbd5e0',
+              border: '1px solid #4a5568',
             },
           }}
         />
