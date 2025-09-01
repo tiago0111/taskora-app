@@ -1,5 +1,34 @@
-node_modules
+**/node_modules
+
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+
+api/dist 
+
+client/.next/
+client/out/
+client/build/
+
 
 .env
+.env.*
+!.env.example
 
-/src/generated/prisma
+
+.DS_Store
+Thumbs.db
+.vscode/
+
+
+**/coverage
+*.tsbuildinfo
+client/next-env.d.ts
+
+
+*.pem
+.vercel

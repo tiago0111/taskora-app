@@ -1,209 +1,208 @@
 'use client';
 
-import { useState } from 'react';
-import type { ReactNode, ChangeEvent } from 'react'; // 1. Importe o ChangeEvent
-
-// --- Interfaces TypeScript ---
-interface ProfileState {
-  name: string;
-  email: string;
-  bio: string;
-}
+import { useState, useEffect, useCallback, FormEvent } from 'react';
+import { fetchWithAuth } from '@/utils/api';
+import type { User } from '@/types'; // Importar o tipo User atualizado
 
 // --- Componente da Página Principal ---
-export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('profile');
+export default function AdminSettingsPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Estados para controlar o modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetchWithAuth('/users');
+      if (!response.ok) {
+        if (response.status === 403) throw new Error('Acesso negado. Apenas administradores podem ver esta página.');
+        throw new Error('Falha ao carregar os utilizadores.');
+      }
+      const data: User[] = await response.json();
+      setUsers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ocorreu um erro inesperado.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleOpenModalForCreate = () => {
+    setEditingUser(null); // Garante que é para criar um novo
+    setIsModalOpen(true);
+  };
+
+  const handleOpenModalForEdit = (user: User) => {
+    setEditingUser(user);
+    setIsModalOpen(true);
+  };
+  
+  // Função que é chamada pelo modal para guardar as alterações
+  const handleSave = () => {
+    fetchUsers(); // Simplesmente recarrega a lista de utilizadores
+    setIsModalOpen(false); // Fecha o modal
+  };
+
+  if (isLoading) {
+    return <p className="text-center text-slate-400">A carregar...</p>;
+  }
+  
+  if (error) {
+    return <p className="text-center text-red-400">{error}</p>;
+  }
 
   return (
     <div className="space-y-8">
-      {/* === Header da Página === */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Configurações</h1>
-        <p className="text-slate-400 mt-1">Personalize a sua experiência no Taskora.</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-        {/* === Sidebar de Navegação === */}
-        <SettingsSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-        {/* === Conteúdo da Tab Ativa === */}
-        <div className="lg:col-span-3">
-          {activeTab === 'profile' && <ProfileSettings />}
-          {activeTab === 'preferences' && <PreferencesSettings />}
-          {activeTab === 'notifications' && <NotificationSettings />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Componente da Sidebar de Configurações ---
-function SettingsSidebar({ activeTab, setActiveTab }: { activeTab: string; setActiveTab: (tab: string) => void; }) {
-  const tabs = [
-    { id: 'profile', label: 'Perfil', icon: 'bx-user' },
-    { id: 'preferences', label: 'Preferências', icon: 'bx-cog' },
-    { id: 'notifications', label: 'Notificações', icon: 'bx-bell' },
-    { id: 'pomodoro', label: 'Pomodoro', icon: 'bx-time-five' },
-    { id: 'security', label: 'Segurança', icon: 'bx-shield' },
-  ];
-
-  return (
-    <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4">
-      <nav className="space-y-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-sm font-semibold ${
-              activeTab === tab.id
-                ? 'bg-indigo-600 text-white'
-                : 'text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            <i className={`bx ${tab.icon} text-xl`}></i>
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </nav>
-    </div>
-  );
-}
-
-// --- Componente para a Secção de Perfil ---
-function ProfileSettings() {
-  const [profile, setProfile] = useState<ProfileState>({
-    name: 'Tiago Conceição',
-    email: 'tiago@taskora.com',
-    bio: 'Desenvolvedor Full Stack apaixonado por produtividade e tecnologia.',
-  });
-
-  return (
-    <SettingsSection title="Informações do Perfil" description="Atualize a sua foto e detalhes pessoais.">
-      <div className="flex items-center gap-6 border-b border-slate-700 pb-6">
-        <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-          TO
-        </div>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
-          <button className="btn-secondary">Alterar Foto</button>
-          <p className="text-xs text-slate-500 mt-2">JPG, PNG ou GIF. Máximo 2MB.</p>
+          <h1 className="text-3xl font-bold text-white">Gestão de Utilizadores</h1>
+          <p className="text-slate-400 mt-1">Adicione, veja e edite os utilizadores da plataforma.</p>
         </div>
+        <button onClick={handleOpenModalForCreate} className="btn-primary">
+          <i className="bx bx-plus mr-2"></i>
+          Adicionar Utilizador
+        </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
-        {/* 2. Adicione o tipo aqui */}
-        <FormInput label="Nome Completo" value={profile.name} onChange={(e: ChangeEvent<HTMLInputElement>) => setProfile({...profile, name: e.target.value})} />
-        <FormInput label="Email" type="email" value={profile.email} onChange={(e: ChangeEvent<HTMLInputElement>) => setProfile({...profile, email: e.target.value})} />
+
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="border-b border-slate-700">
+            <tr>
+              <th className="p-4 text-sm font-semibold text-slate-300">Nome</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">Email</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">Perfil</th>
+              <th className="p-4 text-sm font-semibold text-slate-300">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map(user => (
+              <tr key={user.id} className="border-b border-slate-700 last:border-b-0 hover:bg-slate-700/50">
+                <td className="p-4 text-white font-medium">{user.name}</td>
+                <td className="p-4 text-slate-400">{user.email}</td>
+                <td className="p-4">
+                  <span className={`px-2 py-1 text-xs rounded-full ${user.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300' : 'bg-blue-500/20 text-blue-300'}`}>
+                    {user.role}
+                  </span>
+                </td>
+                <td className="p-4">
+                  <button onClick={() => handleOpenModalForEdit(user)} className="text-slate-400 hover:text-white">
+                    <i className="bx bx-edit text-xl"></i>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div className="pt-6">
-        <label className="block text-sm font-semibold text-slate-300 mb-2">Biografia</label>
-        <textarea 
-          value={profile.bio} 
-          // E aqui
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setProfile({...profile, bio: e.target.value})} 
-          rows={3} 
-          className="input-field"
+      
+      {isModalOpen && (
+        <UserModal 
+          user={editingUser}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSave}
         />
-      </div>
-    </SettingsSection>
-  );
-}
-
-// --- Componente para a Secção de Preferências ---
-function PreferencesSettings() {
-  const [prefs, setPrefs] = useState({ theme: 'dark', startWeek: 'monday' });
-  return (
-    <SettingsSection title="Preferências da Aplicação" description="Personalize a aparência e o comportamento do Taskora.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* E aqui */}
-            <FormSelect label="Tema" value={prefs.theme} onChange={(e: ChangeEvent<HTMLSelectElement>) => setPrefs({...prefs, theme: e.target.value})}>
-                <option value="dark">Escuro</option>
-                <option value="light">Claro</option>
-                <option value="system">Sistema</option>
-            </FormSelect>
-             <FormSelect label="Início da Semana" value={prefs.startWeek} onChange={(e: ChangeEvent<HTMLSelectElement>) => setPrefs({...prefs, startWeek: e.target.value})}>
-                <option value="monday">Segunda-feira</option>
-                <option value="sunday">Domingo</option>
-            </FormSelect>
-        </div>
-    </SettingsSection>
-  );
-}
-
-// --- Componente para a Secção de Notificações ---
-function NotificationSettings() {
-  const [notifications, setNotifications] = useState({ email: true, push: true, weeklyReports: false });
-  return (
-    <SettingsSection title="Notificações" description="Escolha como e quando quer ser notificado.">
-      <FormToggle 
-        label="Notificações por Email" 
-        description="Receber emails sobre atividade importante."
-        enabled={notifications.email}
-        setEnabled={(value) => setNotifications({...notifications, email: value})}
-      />
-      <FormToggle 
-        label="Notificações Push" 
-        description="Receber notificações push no seu dispositivo."
-        enabled={notifications.push}
-        setEnabled={(value) => setNotifications({...notifications, push: value})}
-      />
-      <FormToggle 
-        label="Relatórios Semanais" 
-        description="Receber um resumo da sua produtividade todas as semanas."
-        enabled={notifications.weeklyReports}
-        setEnabled={(value) => setNotifications({...notifications, weeklyReports: value})}
-      />
-    </SettingsSection>
-  );
-}
-
-// --- Componentes Reutilizáveis para o Formulário (sem alterações aqui) ---
-function SettingsSection({ title, description, children }: { title: string; description: string; children: ReactNode }) {
-  return (
-    <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg">
-      <div className="p-6 border-b border-slate-700">
-        <h2 className="text-xl font-bold text-white">{title}</h2>
-        <p className="text-slate-400 mt-1">{description}</p>
-      </div>
-      <div className="p-6 space-y-6">
-        {children}
-        <div className="flex justify-end border-t border-slate-700 pt-6">
-          <button className="btn-primary">Guardar Alterações</button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function FormInput({ label, ...props }: { label: string; [key: string]: any }) {
-  return (
-    <div>
-      <label className="block text-sm font-semibold text-slate-300 mb-2">{label}</label>
-      <input {...props} className="input-field" />
-    </div>
-  );
+
+// --- Componente do Modal ---
+interface UserModalProps {
+  user: User | null;
+  onClose: () => void;
+  onSave: () => void;
 }
 
-function FormSelect({ label, children, ...props }: { label: string; children: ReactNode; [key: string]: any }) {
-    return (
-      <div>
-        <label className="block text-sm font-semibold text-slate-300 mb-2">{label}</label>
-        <select {...props} className="input-field">
-            {children}
-        </select>
-      </div>
-    );
-}
+function UserModal({ user, onClose, onSave }: UserModalProps) {
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    password: '',
+    role: user?.role || 'USER',
+    bio: user?.bio || ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-function FormToggle({ label, description, enabled, setEnabled }: { label: string; description: string; enabled: boolean; setEnabled: (value: boolean) => void; }) {
+  const isEditing = user !== null;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = isEditing ? `/users/${user.id}` : '/users';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const body = isEditing 
+        ? { name: formData.name, bio: formData.bio, role: formData.role }
+        : { name: formData.name, email: formData.email, password: formData.password, role: formData.role };
+      
+      const response = await fetchWithAuth(url, {
+        method: method,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Falha ao ${isEditing ? 'atualizar' : 'criar'} utilizador.`);
+      }
+
+      onSave();
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ocorreu um erro inesperado.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between border-b border-slate-700 py-4 last:border-b-0">
-      <div>
-        <h3 className="font-semibold text-white">{label}</h3>
-        <p className="text-sm text-slate-400">{description}</p>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="p-6 border-b border-slate-700 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white">{isEditing ? 'Editar Utilizador' : 'Adicionar Novo Utilizador'}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><i className="bx bx-x text-2xl"></i></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <input type="text" name="name" placeholder="Nome Completo" value={formData.name} onChange={handleChange} className="input-field" disabled={isLoading} />
+          <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="input-field" disabled={isLoading || isEditing} />
+          {!isEditing && (
+            <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} className="input-field" disabled={isLoading} />
+          )}
+          <textarea name="bio" placeholder="Biografia (opcional)" rows={3} value={formData.bio} onChange={handleChange} className="input-field" disabled={isLoading} />
+          <div>
+            <label className="block text-sm font-semibold text-slate-300 mb-2">Perfil</label>
+            <select name="role" value={formData.role} onChange={handleChange} className="input-field" disabled={isLoading}>
+              <option value="USER">Utilizador</option>
+              <option value="ADMIN">Administrador</option>
+            </select>
+          </div>
+          {error && <p className="text-sm text-red-400 text-center">{error}</p>}
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+            <button type="submit" className="btn-primary" disabled={isLoading}>
+              {isLoading ? 'A guardar...' : 'Guardar Alterações'}
+            </button>
+          </div>
+        </form>
       </div>
-      <label className="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="sr-only peer" />
-        <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-      </label>
     </div>
   );
 }

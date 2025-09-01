@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { listProjects, createProject, updateProject, deleteProject } from '../controllers/projects.controller';
-import tasksRouter from './tasks.router';
+import tasksRouter from './tasks.router'; 
 
 const projectsRouter = Router();
 

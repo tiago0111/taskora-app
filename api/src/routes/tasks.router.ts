@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { createTask, listTasks, updateTask, deleteTask } from '../controllers/tasks.controller';
 
-{ mergeParams: true } 
+
 const tasksRouter = Router({ mergeParams: true });
 
 

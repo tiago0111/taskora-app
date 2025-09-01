@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithAuth } from '@/utils/api';
 
-
+// --- Interfaces TypeScript para os nossos dados ---
 interface AnalyticsSummary {
   tasksCompleted: number;
   pomodoroSessions: number;
@@ -12,16 +12,15 @@ interface AnalyticsSummary {
     minutes: number;
     hours: string;
   };
+  productivityScore: number; // Adicionamos o score
 }
 
-
+// --- Componente da Página ---
 export default function AnalyticsPage() {
-  // Estado para guardar os dados da API
   const [summaryData, setSummaryData] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Função para ir buscar os dados 
   const fetchAnalyticsSummary = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -43,11 +42,9 @@ export default function AnalyticsPage() {
     }
   }, []);
 
-  // useEffect para chamar a função 
   useEffect(() => {
     fetchAnalyticsSummary();
   }, [fetchAnalyticsSummary]);
-
 
   if (isLoading) {
     return <p className="text-center text-slate-400 py-10">A carregar dados de analytics...</p>;
@@ -59,7 +56,6 @@ export default function AnalyticsPage() {
   
   return (
     <div className="space-y-8">
-      {/* Header da Página */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Analytics & Relatórios</h1>
@@ -71,21 +67,17 @@ export default function AnalyticsPage() {
         </button>
       </div>
 
-      {/* Métricas Principais - AGORA COM DADOS REAIS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard icon="bx-check-circle" color="blue" title="Tarefas Concluídas" value={summaryData.tasksCompleted} subtitle="Nos últimos 7 dias" />
         <MetricCard icon="bx-time-five" color="green" title="Sessões Pomodoro" value={summaryData.pomodoroSessions} subtitle="Sessões de trabalho" />
         <MetricCard icon="bx-brain" color="purple" title="Tempo Total Focado" value={`${summaryData.totalFocusTime.hours}h`} subtitle={`${summaryData.totalFocusTime.minutes} minutos`} />
-        {/* Pode adicionar mais métricas aqui, como um score de produtividade calculado */}
-        <MetricCard icon="bx-trending-up" color="yellow" title="Score de Produtividade" value="N/D" subtitle="Baseado em tarefas" />
+        {/* CORREÇÃO: Usar o valor real do productivityScore */}
+        <MetricCard icon="bx-trending-up" color="yellow" title="Score de Produtividade" value={`${summaryData.productivityScore}%`} subtitle="Baseado em performance" />
       </div>
-
-      {/* Adicione outros gráficos e visualizações aqui conforme necessário */}
     </div>
   );
 }
 
-// --- Componente reutilizável para os cartões de métricas ---
 function MetricCard({ icon, color, title, value, subtitle }: { icon: string; color: string; title: string; value: string | number; subtitle: string }) {
   const colors: { [key: string]: string } = {
     blue: 'bg-blue-900/20 text-blue-400',

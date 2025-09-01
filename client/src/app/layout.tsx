@@ -1,12 +1,14 @@
 import "./globals.css";
-//import { ToastProvider } from "../../components/Toast";
+
+import { Toaster } from 'react-hot-toast';
 
 export const metadata = {
   title: "Taskora - Gestão de Tarefas e Produtividade",
   description: "Plataforma moderna de gestão de tarefas com Kanban Board, Pomodoro Timer e Dashboard Analytics",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {  return (
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
     <html lang="pt">
       <head>
         <link
@@ -19,6 +21,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="antialiased">
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            className: '',
+            style: {
+              background: '#2d3748', 
+              color: '#cbd5e0', 
+              border: '1px solid #4a5568', 
+            },
+          }}
+        />
         {children}
       </body>
     </html>

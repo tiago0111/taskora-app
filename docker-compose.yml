@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Serviço da Base de Dados PostgreSQL
+  postgres:
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=taskora_db
+    ports:
+      - "5433:5432" 
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Serviço do Backend (API)
+  api:
+    build:
+      context: ./api #Caminho para a pasta 
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://admin:admin@postgres:5432/taskora_db
+      - JWT_SECRET=your_super_secret_key_for_docker
+    depends_on:
+      - postgres 
+
+  # Serviço do Frontend 
+  client:
+    build:
+      context: ./client # Caminho para a pasta 
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api # garante que a API inicia antes do cliente
+
+volumes:
+  postgres_data:
