@@ -8,3 +8,5 @@ console.log("--- Ficheiro de Rotas de Autenticação foi carregado com sucesso! 
 authentication.post('/login', login);
 
 export default authentication;
+
+// teste
