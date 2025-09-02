@@ -38,4 +38,5 @@ COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3001
-CMD ["node", "dist/index.js"]
+# O TypeScript compila para dist/src/index.js (estrutura preservada)
+CMD ["node", "dist/src/index.js"]
