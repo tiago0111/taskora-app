@@ -18,3 +18,10 @@ Thumbs.db
 .env.production.local
 
 .vscode/
+
+# Terraform files
+.terraform/
+*.tfplan
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
