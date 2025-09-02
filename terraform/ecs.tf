@@ -79,14 +79,20 @@ resource "aws_ecs_service" "api" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = [aws_subnet.public_a.id, aws_subnet.public_b.id] # A API corre nas subnets públicas para ser descoberta
+    subnets         = [aws_subnet.public_a.id, aws_subnet.public_b.id]
     security_groups = [aws_security_group.ecs_service.id]
+    assign_public_ip = true # Atribuir IP público para permitir puxar imagens do ECR
   }
 
-  # Service Discovery: permite que o frontend encontre o backend pelo nome
-  service_registries {
-    registry_arn = aws_service_discovery_service.api.arn
+  # Anexar a API ao Load Balancer
+  load_balancer {
+    target_group_arn = aws_lb_target_group.api.arn # Usa o novo target group da API
+    container_name   = "${var.project_name}-api-container"
+    container_port   = 3001
   }
+
+  # Garante que o serviço só é atualizado após a criação da nova regra do ALB
+  depends_on = [aws_lb_listener_rule.api]
 }
 
 resource "aws_ecs_task_definition" "client" {
@@ -112,7 +118,8 @@ resource "aws_ecs_task_definition" "client" {
       environment = [
         {
           name  = "NEXT_PUBLIC_API_URL",
-          value = "http://${aws_service_discovery_service.api.name}.${aws_service_discovery_private_dns_namespace.main.name}:3001/api"
+          # ATUALIZADO: Usar o DNS público do ALB
+          value = "http://${aws_lb.main.dns_name}/api"
         }
       ],
       logConfiguration = {
@@ -144,27 +151,5 @@ resource "aws_ecs_service" "client" {
     target_group_arn = aws_lb_target_group.client.arn
     container_name   = "${var.project_name}-client-container"
     container_port   = 3000
-  }
-}
-
-resource "aws_service_discovery_private_dns_namespace" "main" {
-  name = "${var.project_name}.local"
-  vpc  = aws_vpc.main.id
-}
-
-resource "aws_service_discovery_service" "api" {
-  name = "api"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-    routing_policy = "MULTIVALUE"
-  }
-
-  health_check_custom_config {
-    failure_threshold = 1
   }
 }
