@@ -1,36 +1,51 @@
-FROM node:18-alpine AS deps
+# Fase 1: Base com todas as dependências instaladas
+FROM node:18-alpine AS base
 WORKDIR /app
 
+# Copia primeiro os ficheiros de dependências e instala
 COPY package.json package-lock.json ./
-COPY prisma ./prisma
-RUN npm install
+RUN npm install --production=false
 
+# Copia o schema do Prisma e gera o cliente
+COPY prisma ./prisma
 RUN npx prisma generate
 
-FROM node:18-alpine AS builder
+# -----------------------------------------------------
+
+# Fase 2: Construir a aplicação
+FROM base AS builder
 WORKDIR /app
 
-COPY --from=deps /app .
+# Copia TODO o código-fonte
+COPY . .
 
-COPY tsconfig.json ./
-COPY src ./src
+# --- Diagnóstico Passo 1: Verificar se os ficheiros TS existem ---
+RUN echo "### Listando ficheiros na raiz do build:" && ls -la
+RUN echo "### Listando ficheiros na pasta src:" && ls -la src
 
-
-RUN echo "### Ficheiros antes do build: ###" && ls -la
-
+# Compila o TypeScript para JavaScript
 RUN npm run build
 
-RUN echo "### Ficheiros após o build em /dist: ###" && ls -la dist
+# --- Diagnóstico Passo 2: Verificar se a pasta 'dist' foi criada ---
+RUN echo "### Listando o conteúdo da pasta 'dist' após o build:" && ls -la dist
 
+# -----------------------------------------------------
+
+# Fase 3: Imagem final de produção
 FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Instala apenas as dependências de produção para uma imagem mais pequena
+COPY package.json package-lock.json ./
+RUN npm install --production=true
+
+# Copia os artefactos da fase de 'builder'
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
+# Copia o cliente Prisma gerado
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3001
 
