@@ -1,0 +1,10 @@
+# api/.dockerignore
+
+# Ignorar dependências, que serão instaladas dentro do container
+node_modules
+
+# Ignorar logs e ficheiros de ambiente local
+logs
+*.log
+npm-debug.log*
+.env
