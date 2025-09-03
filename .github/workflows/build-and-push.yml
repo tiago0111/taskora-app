@@ -1,14 +1,10 @@
-# Nome do workflow que aparecerá
 name: Build and Push Docker Images to AWS ECR
 
-#
 on:
   push:
     branches: ["main"]
 
-#
 env:
-  # Pode encontrar o ID no canto superior direito da sua consola AWS, ao lado do seu nome de utilizador.
   ECR_REGISTRY: 312246193845.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
 jobs:
@@ -35,7 +31,7 @@ jobs:
         id: build-image-api
         uses: docker/build-push-action@v4
         with:
-          context: ./api # O contexto é a pasta da API
+          context: ./api
           push: true
           tags: ${{ env.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_API }}:latest
 
@@ -43,6 +39,9 @@ jobs:
         id: build-image-client
         uses: docker/build-push-action@v4
         with:
-          context: ./client # O contexto é a pasta do cliente
+          context: ./client
           push: true
           tags: ${{ env.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_CLIENT }}:latest
+
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://${{ secrets.ALB_DNS_NAME }}/api

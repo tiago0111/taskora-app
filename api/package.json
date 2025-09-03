@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "seed": "npx ts-node prisma/seed.ts"
+    "seed": "node dist/prisma/seed.js"
   },
   "keywords": [],
   "author": "",
@@ -30,5 +30,8 @@
     "prisma": "^6.15.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.2"
+  },
+  "prisma": {
+    "seed": "node dist/prisma/seed.js"
   }
 }

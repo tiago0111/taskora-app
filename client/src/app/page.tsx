@@ -1,12 +1,11 @@
-
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { fetchWithAuth } from '@/utils/api'; 
-import toast from 'react-hot-toast'; // Usar toasts para feedback é uma boa prática
+import { fetchWithAuth } from '@/utils/api';
+import toast from 'react-hot-toast';
 
 export default function Home() {
   const [userEmail, setUserEmail] = useState("");
@@ -14,7 +13,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  async function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!userEmail || !userPassword) {
       toast.error('Por favor, preencha o email e a palavra-passe.');
@@ -22,19 +21,16 @@ export default function Home() {
     }
     setIsLoading(true);
 
-    const promise = fetch('http://taskora-alb-1889420350.eu-north-1.elb.amazonaws.com/api/auth/login', { // Usar o URL público do ALB
+    const promise = fetchWithAuth('/auth/login', {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
       body: JSON.stringify({ email: userEmail, password: userPassword })
     })
     .then(async (response) => {
-      const data = await response.json();
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.message || "Credenciais inválidas.");
       }
-      return data;
+      return response.json();
     });
 
     toast.promise(promise, {
@@ -47,7 +43,7 @@ export default function Home() {
         }
         throw new Error("Token não recebido do servidor.");
       },
-      error: (err) => err.message,
+      error: (err) => err.message || "Ocorreu um erro inesperado.",
     }).finally(() => {
       setIsLoading(false);
     });
