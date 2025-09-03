@@ -38,7 +38,8 @@ export default function Home() {
       success: (data) => {
         if (data.token) {
           Cookies.set('authToken', data.token, { expires: 7 });
-          router.push('/dashboard');
+          // ALTERAÇÃO AQUI: Use window.location.href para forçar um recarregamento
+          window.location.href = '/dashboard'; 
           return 'Login bem-sucedido!';
         }
         throw new Error("Token não recebido do servidor.");
