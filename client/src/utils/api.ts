@@ -1,7 +1,6 @@
 import Cookies from 'js-cookie';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 interface ApiOptions extends RequestInit {
   auth?: boolean;
 }
@@ -24,8 +23,7 @@ export async function api(endpoint: string, options: ApiOptions = {}) {
   }
 
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      ...fetchOptions,
+const response = await fetch(`${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, {      ...fetchOptions,
       headers,
     });
 

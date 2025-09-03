@@ -52,8 +52,7 @@ resource "aws_ecs_task_definition" "api" {
       environment = [
         {
           name  = "DATABASE_URL",
-          value = "postgresql://${aws_db_instance.main.username}:${var.db_password}@${aws_db_instance.main.address}/${aws_db_instance.main.db_name}"
-        },
+          value = "postgresql://${aws_db_instance.main.username}:${var.db_password}@${aws_db_instance.main.endpoint}/${aws_db_instance.main.db_name}"        },
         {
           name  = "JWT_SECRET",
           value = var.jwt_secret

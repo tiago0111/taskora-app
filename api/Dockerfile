@@ -2,6 +2,7 @@
 
 # Fase 1: Instalar todas as dependências (incluindo as de desenvolvimento)
 FROM node:18-alpine AS deps
+RUN apk add --no-cache netcat-openbsd
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install --production=false
@@ -24,6 +25,8 @@ RUN npm run build
 
 
 FROM node:18-alpine AS runner
+RUN apk add --no-cache netcat-openbsd
+
 WORKDIR /app
 ENV NODE_ENV=production
 
