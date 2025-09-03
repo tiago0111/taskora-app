@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchWithAuth } from '@/utils/api';
+import { api } from '@/utils/api'; // Alterado
 // Importamos os tipos de Task e Project
 import type { Task, Project } from '@/types';
 
@@ -40,7 +40,8 @@ export default function PomodoroPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const projectsResponse = await fetchWithAuth('/projects');
+      // Alterado para usar a nova função 'api'
+      const projectsResponse = await api('/projects', { auth: true });
       const projectsData: Project[] = await projectsResponse.json();
       setProjects(projectsData);
 
@@ -48,7 +49,8 @@ export default function PomodoroPage() {
         const firstProjectId = projectsData[0].id;
         setSelectedProjectId(firstProjectId);
 
-        const tasksResponse = await fetchWithAuth(`/projects/${firstProjectId}/tasks`);
+        // Alterado para usar a nova função 'api'
+        const tasksResponse = await api(`/projects/${firstProjectId}/tasks`, { auth: true });
         const tasksData: Task[] = await tasksResponse.json();
         setTasks(tasksData);
         if (tasksData.length > 0) {
@@ -72,7 +74,8 @@ export default function PomodoroPage() {
     setTasks([]); // Limpa as tarefas antigas
     setSelectedTaskId(null); // Limpa a tarefa selecionada
     try {
-      const tasksResponse = await fetchWithAuth(`/projects/${projectId}/tasks`);
+      // Alterado para usar a nova função 'api'
+      const tasksResponse = await api(`/projects/${projectId}/tasks`, { auth: true });
       const tasksData: Task[] = await tasksResponse.json();
       setTasks(tasksData);
       if (tasksData.length > 0) {
@@ -96,9 +99,11 @@ export default function PomodoroPage() {
         body.taskId = selectedTaskId;
       }
 
-      const response = await fetchWithAuth('/pomodoro/sessions', {
+      // Alterado para usar a nova função 'api'
+      const response = await api('/pomodoro/sessions', {
         method: 'POST',
         body: JSON.stringify(body),
+        auth: true
       });
 
       if (!response.ok) throw new Error('Falha ao guardar a sessão Pomodoro.');

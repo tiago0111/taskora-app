@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchWithAuth } from '@/utils/api';
+import { api } from '@/utils/api'; // Alterado
 
 // --- Interfaces TypeScript para os nossos dados ---
 interface AnalyticsSummary {
@@ -25,7 +25,8 @@ export default function AnalyticsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetchWithAuth('/analytics/summary');
+      // Alterado para usar a nova função 'api'
+      const response = await api('/analytics/summary', { auth: true });
       if (!response.ok) {
         throw new Error('Falha ao carregar os dados de analytics.');
       }

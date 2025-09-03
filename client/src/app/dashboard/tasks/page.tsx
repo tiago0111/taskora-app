@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, FormEvent } from 'react';
-// 1. Importar os novos tipos que definimos
 import type { Project, Task, TaskStatus, TaskPriority } from '@/types';
-import { fetchWithAuth } from '@/utils/api';
+import { api } from '@/utils/api'; // Alterado
 
 interface ModalProps {
     onClose: () => void;
@@ -26,7 +25,8 @@ export default function TasksPage() {
         setIsLoading(true);
         setError(null);
         try {
-            const projectsResponse = await fetchWithAuth('/projects');
+            // Alterado para usar a nova função 'api'
+            const projectsResponse = await api('/projects', { auth: true });
             if (!projectsResponse.ok) {
                 throw new Error('Falha ao carregar os seus projetos.');
             }
@@ -53,7 +53,8 @@ export default function TasksPage() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetchWithAuth(`/projects/${projectId}/tasks`);
+            // Alterado para usar a nova função 'api'
+            const response = await api(`/projects/${projectId}/tasks`, { auth: true });
             if (!response.ok) {
                 throw new Error(`Falha ao carregar as tarefas deste projeto. (${response.status})`);
             }
@@ -88,9 +89,11 @@ export default function TasksPage() {
         const method = isEditing ? 'PUT' : 'POST';
 
         try {
-            const response = await fetchWithAuth(url, {
+            // Alterado para usar a nova função 'api'
+            const response = await api(url, {
                 method: method,
-                body: JSON.stringify(taskData)
+                body: JSON.stringify(taskData),
+                auth: true
             });
             if (!response.ok) throw new Error(`Falha ao ${isEditing ? 'atualizar' : 'criar'} a tarefa.`);
             fetchTasksForProject(selectedProjectId); // Recarrega as tarefas
@@ -106,8 +109,10 @@ export default function TasksPage() {
         }
         if (!window.confirm('Tem a certeza que quer apagar esta tarefa?')) return;
         try {
-            const response = await fetchWithAuth(`/projects/${selectedProjectId}/tasks/${taskId}`, {
+            // Alterado para usar a nova função 'api'
+            const response = await api(`/projects/${selectedProjectId}/tasks/${taskId}`, {
                 method: 'DELETE',
+                auth: true
             });
             if (!response.ok) throw new Error('Falha ao apagar a tarefa.');
             fetchTasksForProject(selectedProjectId);

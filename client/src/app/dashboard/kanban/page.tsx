@@ -6,7 +6,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove, s
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Task, Project, TaskStatus } from '@/types';
-import { fetchWithAuth } from '@/utils/api';
+import { api } from '@/utils/api'; // Alterado
 import toast from 'react-hot-toast';
 
 // --- Interfaces e Tipos ---
@@ -28,7 +28,8 @@ export default function KanbanPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const tasksResponse = await fetchWithAuth(`/projects/${projectId}/tasks`);
+      // Alterado para usar a nova função 'api'
+      const tasksResponse = await api(`/projects/${projectId}/tasks`, { auth: true });
       if (!tasksResponse.ok) throw new Error('Falha ao carregar as tarefas.');
       const tasksData: Task[] = await tasksResponse.json();
       setTasks(tasksData);
@@ -41,7 +42,8 @@ export default function KanbanPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const projectsResponse = await fetchWithAuth('/projects');
+      // Alterado para usar a nova função 'api'
+      const projectsResponse = await api('/projects', { auth: true });
       if (!projectsResponse.ok) throw new Error('Falha ao carregar projetos.');
       const projectsData: Project[] = await projectsResponse.json();
       setProjects(projectsData);
@@ -116,9 +118,11 @@ export default function KanbanPage() {
   };
 
   const updateTaskStatusInApi = async (taskId: number, newStatus: TaskStatus, originalStatus: TaskStatus) => {
-    const promise = fetchWithAuth(`/projects/${selectedProjectId}/tasks/${taskId}`, {
+    // Alterado para usar a nova função 'api'
+    const promise = api(`/projects/${selectedProjectId}/tasks/${taskId}`, {
         method: 'PUT',
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus }),
+        auth: true
     });
 
     toast.promise(

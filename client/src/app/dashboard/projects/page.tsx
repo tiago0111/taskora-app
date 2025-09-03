@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent } from 'react';
 import type { Project } from '@/types';
-import { fetchWithAuth } from '@/utils/api';
+import { api } from '@/utils/api'; // Alterado
 
 // --- Componente da Página Principal ---
 export default function ProjectsPage() {
@@ -18,10 +18,10 @@ export default function ProjectsPage() {
     setError(null);
     
     try {
-      const response = await fetchWithAuth('/projects');
+      // Alterado para usar a nova função 'api'
+      const response = await api('/projects', { auth: true });
 
       if (!response.ok) {
-        // A lógica de redirecionamento já está no fetchWithAuth
         throw new Error('Não foi possível carregar os projetos. Verifique se a sua API está a correr.');
       }
 
@@ -171,9 +171,11 @@ function NewProjectModal({ onClose, onProjectCreated }: NewProjectModalProps) {
     setError(null);
 
     try {
-        const response = await fetchWithAuth('/projects', {
+        // Alterado para usar a nova função 'api'
+        const response = await api('/projects', {
             method: 'POST',
-            body: JSON.stringify({ name, description })
+            body: JSON.stringify({ name, description }),
+            auth: true
         });
 
         if (!response.ok) {

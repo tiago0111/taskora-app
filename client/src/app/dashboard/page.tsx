@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchWithAuth } from '@/utils/api';
+import { api } from '@/utils/api'; // Alterado
 import type { Task, Project } from '@/types';
 
 // Interface para os dados completos do dashboard
@@ -27,7 +27,8 @@ export default function DashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetchWithAuth('/analytics/dashboard');
+      // Alterado para usar a nova função 'api'
+      const response = await api('/analytics/dashboard', { auth: true });
       if (!response.ok) {
         throw new Error('Falha ao carregar os dados do dashboard.');
       }

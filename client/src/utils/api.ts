@@ -2,29 +2,42 @@ import Cookies from 'js-cookie';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  const token = Cookies.get('authToken');
+interface ApiOptions extends RequestInit {
+  auth?: boolean;
+}
 
-  if (!token && typeof window !== 'undefined') {
-    window.location.href = '/';
-    return new Response(JSON.stringify({ message: 'Não autorizado.' }), { status: 401 });
+export async function api(endpoint: string, options: ApiOptions = {}) {
+  const { auth = false, ...fetchOptions } = options;
+  
+  // CORREÇÃO: Criamos um novo objeto Headers para garantir a compatibilidade de tipos.
+  const headers = new Headers(fetchOptions.headers);
+  headers.set('Content-Type', 'application/json');
+
+  if (auth) {
+    const token = Cookies.get('authToken');
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      console.error('Tentativa de chamada autenticada sem token.');
+      return new Response(JSON.stringify({ message: 'Não autorizado.' }), { status: 401 });
+    }
   }
 
-  const headers = {
-    ...options.headers,
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-  };
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+    });
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+    if (response.status === 401 && typeof window !== 'undefined') {
+      Cookies.remove('authToken');
+      window.location.href = '/';
+      return response;
+    }
 
-  if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
-    Cookies.remove('authToken');
-    window.location.href = '/';
+    return response;
+  } catch (error) {
+    console.error('Erro de rede ao fazer fetch:', error);
+    return new Response(JSON.stringify({ message: 'Erro de rede ou API indisponível.' }), { status: 503 });
   }
-
-  return response;
 }
