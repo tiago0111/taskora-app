@@ -8,55 +8,69 @@ async function main() {
 
   const hashedPassword = await bcrypt.hash('password', 10);
 
-  const user = await prisma.user.create({
-    data: {
+  // Use "upsert" para criar o utilizador apenas se ele não existir
+  const user = await prisma.user.upsert({
+    where: { email: 'admin@taskora.com' },
+    update: {}, // Não é necessário atualizar nada se o utilizador já existir
+    create: {
       email: 'admin@taskora.com',
       name: 'Admin User',
       password: hashedPassword,
-      role: Role.ADMIN, // Use a enum Role
+      role: Role.ADMIN,
       bio: 'Perfil do administrador do sistema.',
     },
   });
 
-  console.log(`Created user with id: ${user.id}`);
+  console.log(`Admin user is ensured with id: ${user.id}`);
 
-  const project = await prisma.project.create({
-    data: {
+  // Para evitar duplicados, vamos verificar se o projeto de exemplo já existe
+  let project = await prisma.project.findFirst({
+    where: {
       name: 'Projeto de Exemplo',
-      description: 'Um projeto inicial para testar a aplicação.',
       ownerId: user.id,
     },
   });
 
-  console.log(`Created project with id: ${project.id}`);
+  if (!project) {
+    project = await prisma.project.create({
+      data: {
+        name: 'Projeto de Exemplo',
+        description: 'Um projeto inicial para testar a aplicação.',
+        ownerId: user.id,
+      },
+    });
+    console.log(`Created project with id: ${project.id}`);
 
-  await prisma.task.createMany({
-    data: [
-      {
-        title: 'Configurar autenticação',
-        description: 'Implementar a autenticação de utilizadores com JWT.',
-        projectId: project.id,
-        assigneeId: user.id,
-        status: Status.EM_PROGRESSO, // Use a enum Status
-      },
-      {
-        title: 'Desenvolver a dashboard',
-        description: 'Criar a interface principal da dashboard.',
-        projectId: project.id,
-        assigneeId: user.id,
-        status: Status.PENDENTE, // Use a enum Status
-      },
-      {
-        title: 'Desenhar o logo',
-        description: 'Criar o logo oficial da aplicação Taskora.',
-        projectId: project.id,
-        assigneeId: user.id,
-        status: Status.CONCLUIDA, // Use a enum Status
-      },
-    ],
-  });
-
-  console.log('Created example tasks.');
+    // Criar tarefas apenas se o projeto for novo
+    await prisma.task.createMany({
+      data: [
+        {
+          title: 'Configurar autenticação',
+          description: 'Implementar a autenticação de utilizadores com JWT.',
+          projectId: project.id,
+          assigneeId: user.id,
+          status: Status.EM_PROGRESSO,
+        },
+        {
+          title: 'Desenvolver a dashboard',
+          description: 'Criar a interface principal da dashboard.',
+          projectId: project.id,
+          assigneeId: user.id,
+          status: Status.PENDENTE,
+        },
+        {
+          title: 'Desenhar o logo',
+          description: 'Criar o logo oficial da aplicação Taskora.',
+          projectId: project.id,
+          assigneeId: user.id,
+          status: Status.CONCLUIDA,
+        },
+      ],
+    });
+    console.log('Created example tasks.');
+  } else {
+    console.log('Example project and tasks already exist.');
+  }
 }
 
 main()
