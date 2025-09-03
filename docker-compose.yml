@@ -20,8 +20,8 @@ services:
       context: ./api #Caminho para a pasta 
       dockerfile: Dockerfile
     restart: always
-    ports:
-      - "3001:3001"
+    ports: # ADICIONE ESTA LINHA
+      - "3001:3001" # E ESTA LINHA
     environment:
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/taskora_db
       - JWT_SECRET=your_super_secret_key_for_docker
