@@ -1,5 +1,3 @@
-
-# Definir o argumento que pode ser passado durante o build
 ARG NEXT_PUBLIC_API_URL
 
 # Fase de dependências

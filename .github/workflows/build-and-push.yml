@@ -42,6 +42,3 @@ jobs:
           context: ./client
           push: true
           tags: ${{ env.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_CLIENT }}:latest
-
-          build-args: |
-            NEXT_PUBLIC_API_URL=http://${{ secrets.ALB_DNS_NAME }}/api
