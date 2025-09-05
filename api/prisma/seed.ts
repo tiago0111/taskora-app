@@ -6,70 +6,57 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Start seeding...');
 
-  const hashedPassword = await bcrypt.hash('password', 10);
-
-  // Use "upsert" para criar o utilizador apenas se ele não existir
-  const user = await prisma.user.upsert({
+  const adminPassword = await bcrypt.hash('password', 10);
+  const adminUser = await prisma.user.upsert({
     where: { email: 'admin@taskora.com' },
-    update: {}, // Não é necessário atualizar nada se o utilizador já existir
+    update: {},
     create: {
       email: 'admin@taskora.com',
       name: 'Admin User',
-      password: hashedPassword,
+      password: adminPassword,
       role: Role.ADMIN,
-      bio: 'Perfil do administrador do sistema.',
     },
   });
+  console.log(`Admin user ensured with id: ${adminUser.id}`);
 
-  console.log(`Admin user is ensured with id: ${user.id}`);
-
-  // Para evitar duplicados, vamos verificar se o projeto de exemplo já existe
-  let project = await prisma.project.findFirst({
-    where: {
-      name: 'Projeto de Exemplo',
-      ownerId: user.id,
+  const demoPassword = await bcrypt.hash('password123', 10); // Use uma password simples
+  const demoUser = await prisma.user.upsert({
+    where: { email: 'demo@taskora.com' },
+    update: {},
+    create: {
+      email: 'demo@taskora.com',
+      name: 'Demo User',
+      password: demoPassword,
+      role: Role.USER, 
     },
   });
+  console.log(`Demo user ensured with id: ${demoUser.id}`);
 
-  if (!project) {
-    project = await prisma.project.create({
-      data: {
-        name: 'Projeto de Exemplo',
-        description: 'Um projeto inicial para testar a aplicação.',
-        ownerId: user.id,
-      },
-    });
-    console.log(`Created project with id: ${project.id}`);
+  const existingDemoProject = await prisma.project.findFirst({
+      where: {
+          ownerId: demoUser.id,
+          name: 'Projeto de Demonstração'
+      }
+  });
 
-    // Criar tarefas apenas se o projeto for novo
-    await prisma.task.createMany({
-      data: [
-        {
-          title: 'Configurar autenticação',
-          description: 'Implementar a autenticação de utilizadores com JWT.',
-          projectId: project.id,
-          assigneeId: user.id,
-          status: Status.EM_PROGRESSO,
+  if (!existingDemoProject) {
+      const demoProject = await prisma.project.create({
+        data: {
+          name: 'Projeto de Demonstração',
+          description: 'Um projeto para experimentar as funcionalidades do Taskora.',
+          ownerId: demoUser.id,
+          tasks: {
+            create: [
+              { title: 'Explorar o Kanban Board', assigneeId: demoUser.id, status: 'PENDENTE' },
+              { title: 'Testar o Pomodoro Timer', assigneeId: demoUser.id, status: 'EM_PROGRESSO' },
+              { title: 'Criar uma nova tarefa', assigneeId: demoUser.id, status: 'PENDENTE' },
+            ],
+          },
         },
-        {
-          title: 'Desenvolver a dashboard',
-          description: 'Criar a interface principal da dashboard.',
-          projectId: project.id,
-          assigneeId: user.id,
-          status: Status.PENDENTE,
-        },
-        {
-          title: 'Desenhar o logo',
-          description: 'Criar o logo oficial da aplicação Taskora.',
-          projectId: project.id,
-          assigneeId: user.id,
-          status: Status.CONCLUIDA,
-        },
-      ],
-    });
-    console.log('Created example tasks.');
+      });
+      console.log(`Created demo project with id: ${demoProject.id}`);
   } else {
-    console.log('Example project and tasks already exist.');
+      console.log('Demo project already exists.');
   }
 }
 
