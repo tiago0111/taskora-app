@@ -4,14 +4,14 @@ import Image from 'next/image';
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { api } from '@/utils/api'; // ALTERADO: Importar a nova função 'api'
+import { api } from '@/utils/api';
 import toast from 'react-hot-toast';
 
 export default function Home() {
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter(); // router ainda pode ser útil para outras coisas
+  const router = useRouter();
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -21,11 +21,10 @@ export default function Home() {
     }
     setIsLoading(true);
 
-    // ALTERADO: Usar a nova função 'api'
     const promise = api('/auth/login', {
       method: "POST",
       body: JSON.stringify({ email: userEmail, password: userPassword }),
-      auth: false // Explicitamente dizemos que esta chamada não precisa de autenticação
+      auth: false
     })
     .then(async (response) => {
       if (!response.ok) {
@@ -40,7 +39,6 @@ export default function Home() {
       success: (data) => {
         if (data.token) {
           Cookies.set('authToken', data.token, { expires: 7 });
-          // Mantemos o redirecionamento com window.location.href que é mais robusto
           window.location.href = '/dashboard'; 
           return 'Login bem-sucedido!';
         }
@@ -68,7 +66,6 @@ export default function Home() {
           </div>
           <div className="bg-white rounded-3xl p-10 shadow-2xl">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* O resto do formulário permanece igual... */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-3">
                   Email Empresarial
@@ -123,6 +120,16 @@ export default function Home() {
               </button>
             </form>
           </div>
+          
+          {/* CÓDIGO ATUALIZADO ADICIONADO AQUI */}
+          <div className="text-center mt-4">
+            <p className="text-sm text-slate-400">
+              Para demonstração, use: <br />
+              <strong className="text-slate-300">Email:</strong> demo@taskora.com | 
+              <strong className="text-slate-300"> Password:</strong> password123
+            </p>
+          </div>
+          
         </div>
       </div>
     </div>
