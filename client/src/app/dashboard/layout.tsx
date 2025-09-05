@@ -83,8 +83,22 @@ export default function DashboardLayout({
 
       <div className="lg:pl-64">
         <header className="sticky top-0 z-40 flex h-20 shrink-0 items-center gap-x-4 border-b border-slate-700 bg-slate-900/80 backdrop-blur-xl px-4 sm:px-6 lg:px-8">
-            {/* ...código do header aqui... */}
-        </header>
+  <button
+    type="button"
+    className="-m-2.5 p-2.5 text-slate-300 lg:hidden"
+    onClick={() => setSidebarOpen(true)}
+  >
+    <span className="sr-only">Abrir sidebar</span>
+    <i className="bx bx-menu text-2xl"></i>
+  </button>
+
+  <div className="h-6 w-px bg-slate-700 lg:hidden" aria-hidden="true" />
+
+  <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+    <div className="relative flex flex-1">
+    </div>
+  </div>
+</header>
         <main className="py-8">
           <div className="px-4 sm:px-6 lg:px-8">
             {children}
